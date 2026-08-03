@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biblos Travel — Carga de Tickets</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Serif+Display&display=swap');
+
+  :root {
+    --navy:    #1F4E79;
+    --sky:     #2E86C1;
+    --accent:  #E8A020;
+    --light:   #DEEAF1;
+    --bg:      #F5F8FA;
+    --text:    #1a2633;
+    --muted:   #6b8096;
+    --success: #1a7a4a;
+    --error:   #c0392b;
+    --border:  #cddce8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--navy);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  }
+
+  header .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: white;
+    letter-spacing: 0.3px;
+  }
+
+  header .logo span { color: var(--accent); }
+
+  header .subtitle {
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    font-weight: 300;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  header .divider {
+    width: 1px;
+    height: 36px;
+    background: rgba(255,255,255,0.2);
+    margin: 0 8px;
+  }
+
+  .main {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  /* Auth section */
+  #auth-section {
+    background: white;
+    border-radius: 12px;
+    padding: 32px;
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+
+  #auth-section h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .auth-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .auth-status.disconnected {
+    background: #fef3e2;
+    color: #a05c00;
+    border: 1px solid #f5cfa0;
+  }
+
+  .auth-status.connected {
+    background: #e8f8f0;
+    color: var(--success);
+    border: 1px solid #a8dfc0;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s ease;
+  }
+
+  .btn-primary {
+    background: var(--navy);
+    color: white;
+  }
+  .btn-primary:hover { background: var(--sky); }
+
+  .btn-google {
+    background: white;
+    color: #333;
+    border: 1px solid var(--border);
+    margin-top: 14px;
+  }
+  .btn-google:hover { background: #f5f5f5; }
+
+  .btn-google img {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Drop zone */
+  #upload-section {
+    background: white;
+    border-radius: 12px;
+    padding: 32px;
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+
+  #upload-section h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 20px;
+  }
+
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--bg);
+  }
+
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--sky);
+    background: #eaf4fb;
+  }
+
+  .drop-zone .icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+  }
+
+  .drop-zone p {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .drop-zone strong { color: var(--navy); }
+
+  #file-input { display: none; }
+
+  /* Preview table */
+  #preview-section {
+    background: white;
+    border-radius: 12px;
+    padding: 32px;
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+    display: none;
+  }
+
+  #preview-section h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .badge {
+    background: var(--accent);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  thead th {
+    background: var(--navy);
+    color: white;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:hover { background: var(--bg); }
+
+  tbody td {
+    padding: 10px 12px;
+    vertical-align: middle;
+    color: var(--text);
+  }
+
+  .tramo-select {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .tag-ida     { color: var(--sky); font-weight: 600; }
+  .tag-regreso { color: var(--accent); font-weight: 600; }
+  .tag-interno { color: #7d3c98; font-weight: 600; }
+
+  .action-bar {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    justify-content: flex-end;
+  }
+
+  .btn-cancel {
+    background: white;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-cancel:hover { background: #f5f5f5; }
+
+  /* Log */
+  #log-section {
+    background: white;
+    border-radius: 12px;
+    padding: 24px 32px;
+    border: 1px solid var(--border);
+    display: none;
+  }
+
+  #log-section h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 16px;
+  }
+
+  .log-entry {
+    font-size: 13px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--bg);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    line-height: 1.5;
+  }
+
+  .log-entry.ok   { color: var(--success); }
+  .log-entry.err  { color: var(--error); }
+  .log-entry.info { color: var(--muted); }
+
+  .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--sky);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  footer {
+    text-align: center;
+    padding: 24px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">Biblos <span>Travel</span></div>
+    <div class="subtitle">Carga de Tickets</div>
+  </div>
+  <div class="divider"></div>
+  <div style="font-size:12px; color:rgba(255,255,255,0.5);">Check-in Manager</div>
+</header>
+
+<div class="main">
+
+  <!-- AUTH -->
+  <div id="auth-section">
+    <h2>🔐 Conexión con Google</h2>
+    <div id="auth-status" class="auth-status disconnected">
+      ⚠️ No conectado — necesitás autorizar el acceso a Google Sheets
+    </div>
+    <button class="btn btn-google" onclick="iniciarAuth()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+      Conectar con Google
+    </button>
+    <div id="sheet-config" style="margin-top:16px; display:none;">
+      <label style="font-size:13px; color:var(--muted); font-weight:500;">ID del Google Sheet:</label>
+      <input id="sheet-id-input" type="text"
+        value="1USmswvC2CLWntYkXk7AlCNOY2MCn85q7"
+        style="width:100%; margin-top:6px; padding:9px 12px; border:1px solid var(--border); border-radius:8px; font-family:monospace; font-size:13px;">
+    </div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div id="upload-section">
+    <h2>📄 Subir tickets PDF</h2>
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <div class="icon">✈️</div>
+      <p><strong>Arrastrá los PDFs acá</strong> o hacé clic para seleccionarlos</p>
+      <p style="margin-top:6px; font-size:12px;">Podés subir varios tickets a la vez</p>
+    </div>
+    <input type="file" id="file-input" accept=".pdf" multiple>
+  </div>
+
+  <!-- PREVIEW -->
+  <div id="preview-section">
+    <h2>
+      Vista previa
+      <span class="badge" id="count-badge">0 segmentos</span>
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Tramo</th>
+          <th>Pasajero(s)</th>
+          <th>N° Vuelo</th>
+          <th>Booking Ref</th>
+          <th>Notas</th>
+        </tr>
+      </thead>
+      <tbody id="preview-tbody"></tbody>
+    </table>
+    <div class="action-bar">
+      <button class="btn btn-cancel" onclick="cancelar()">Cancelar</button>
+      <button class="btn btn-primary" onclick="enviarASheet()">⬆ Cargar al Sheet</button>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div id="log-section">
+    <h2>📋 Resultado</h2>
+    <div id="log-container"></div>
+  </div>
+
+</div>
+
+<footer>Biblos Travel · Check-in Manager · Solo accesible con tu cuenta de Google autorizada</footer>
+
+<script>
+// ─────────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────────
+const CLIENT_ID   = "44416940467-82je9tlcn85nqr5mm034uhpnoatg60lf.apps.googleusercontent.com";
+const SCOPES      = "https://www.googleapis.com/auth/spreadsheets";
+const DISCOVERY   = "https://sheets.googleapis.com/$discovery/rest?version=v4";
+
+const MESES_EN = {
+  "January":1,"February":2,"March":3,"April":4,"May":5,"June":6,
+  "July":7,"August":8,"September":9,"October":10,"November":11,"December":12
+};
+const MESES_ES_NOMBRE = {
+  1:"ENERO",2:"FEBRERO",3:"MARZO",4:"ABRIL",5:"MAYO",6:"JUNIO",
+  7:"JULIO",8:"AGOSTO",9:"SEPTIEMBRE",10:"OCTUBRE",11:"NOVIEMBRE",12:"DICIEMBRE"
+};
+
+// Colores para el Sheet
+const COLOR_MES    = {red:0.122,green:0.306,blue:0.475};
+const COLOR_HEADER = {red:0.122,green:0.306,blue:0.475};
+const COLOR_PAR    = {red:0.871,green:0.918,blue:0.945};
+const COLOR_BLANCO = {red:1,green:1,blue:1};
+
+let tokenClient, gapiLoaded = false, gisLoaded = false;
+let accessToken = null;
+let segmentosPendientes = [];
+
+// ─── GOOGLE AUTH ───────────────────────────────
+function gapiStart() {
+  gapi.load("client", async () => {
+    await gapi.client.init({ discoveryDocs: [DISCOVERY] });
+    gapiLoaded = true;
+    intentarInicializar();
+  });
+}
+
+function gisStart() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (resp) => {
+      if (resp.error) { log("Error de autenticación: " + resp.error, "err"); return; }
+      accessToken = resp.access_token;
+      gapi.client.setToken({ access_token: accessToken });
+      document.getElementById("auth-status").className = "auth-status connected";
+      document.getElementById("auth-status").textContent = "✅ Conectado con Google Sheets";
+      document.getElementById("sheet-config").style.display = "block";
+    }
+  });
+  gisLoaded = true;
+  intentarInicializar();
+}
+
+function intentarInicializar() {
+  if (gapiLoaded && gisLoaded) {
+    // listo para usar
+  }
+}
+
+function iniciarAuth() {
+  if (!gapiLoaded || !gisLoaded) {
+    alert("Cargando librerías de Google, intentá en un segundo...");
+    return;
+  }
+  tokenClient.requestAccessToken({ prompt: "consent" });
+}
+
+// ─── PDF PARSING ───────────────────────────────
+function parsearFechaHora(token) {
+  // "25August12:45" → { dia:25, mes:8, hora:"12:45" }
+  const m = token.match(/^(\d{1,2})([A-Za-z]+)(\d{2}:\d{2})$/);
+  if (!m) return null;
+  const mesNum = MESES_EN[m[2]] || 0;
+  return { dia: parseInt(m[1]), mes: mesNum, hora: m[3], raw: m[1]+" "+m[2] };
+}
+
+function limpiarCiudad(raw) {
+  // insertar espacios entre palabras pegadas
+  raw = raw.replace(/([a-záéíóúñ])([A-ZÁÉÍÓÚÑ])/g, "$1 $2");
+  raw = raw.replace(/(\d)([A-ZÁÉÍÓÚÑ])/g, "$1 $2");
+  raw = raw.replace(/,?\s*\(.*/, "");
+  raw = raw.replace(/\(\+\)/g, "");
+  raw = raw.replace(/Terminal.*/gi, "");
+  return raw.trim().replace(/^[, ]+|[, ]+$/g, "");
+}
+
+function parsearPDF(texto, nombreArchivo) {
+  const lineas = texto.split("\n");
+  const segmentos = [];
+
+  let pasajero = "";
+  const mPax = texto.match(/Traveler\s+(.+?)\s+Agency/);
+  if (mPax) pasajero = mPax[1].trim();
+
+  let airlineRef = "";
+  const mRef = texto.match(/Airline Booking Reference\(s\)\s*\n.+?:\s*(\S+)/);
+  if (mRef) airlineRef = mRef[1].trim();
+
+  for (let i = 0; i < lineas.length; i++) {
+    const linea = lineas[i].trim();
+    const mVuelo = linea.match(/^(.+?)\s+([A-Z]{2})\s+(\d{3,4})\s*$/);
+    if (!mVuelo) continue;
+
+    const aeroli = mVuelo[1].trim();
+    const codigo = mVuelo[2].trim();
+    const nroVuelo = mVuelo[3].trim();
+
+    let depInfo = null, arrInfo = null, origen = "", destino = "";
+
+    for (let j = i+1; j < Math.min(i+8, lineas.length); j++) {
+      const l = lineas[j].trim();
+      const mDep = l.match(/^Departure\s+(\S+)\s+(.*?)(?:\(\+\))?(?:\s+Terminal.*)?$/);
+      const mArr = l.match(/^Arrival\s+(\S+)\s+(.*?)(?:\(\+\))?(?:\s+Terminal.*)?$/);
+      if (mDep) { depInfo = parsearFechaHora(mDep[1]); origen = limpiarCiudad(mDep[2]); }
+      if (mArr) { arrInfo = parsearFechaHora(mArr[1]); destino = limpiarCiudad(mArr[2]); }
+    }
+
+    if (!depInfo) continue;
+
+    // Determinar tramo automáticamente por posición (primero=ida, resto=regreso)
+    const tramo = segmentos.length === 0 ? "Ida" : "Regreso";
+
+    segmentos.push({
+      fecha: depInfo.raw,
+      fechaSort: new Date(2026, depInfo.mes-1, depInfo.dia),
+      tramo,
+      pasajero,
+      vuelo: `${codigo} ${nroVuelo}`,
+      bookingRef: airlineRef,
+      notas: "",
+      origen,
+      destino,
+      archivo: nombreArchivo,
+    });
+  }
+
+  return segmentos;
+}
+
+// ─── UI ────────────────────────────────────────
+const dropZone = document.getElementById("drop-zone");
+const fileInput = document.getElementById("file-input");
+
+dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("dragover"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+dropZone.addEventListener("drop", e => {
+  e.preventDefault();
+  dropZone.classList.remove("dragover");
+  procesarArchivos([...e.dataTransfer.files]);
+});
+fileInput.addEventListener("change", () => procesarArchivos([...fileInput.files]));
+
+async function leerPDF(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const typedArray = new Uint8Array(e.target.result);
+      try {
+        const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+        let texto = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          const items = content.items;
+          let linea = "";
+          let lastY = null;
+          for (const item of items) {
+            const y = Math.round(item.transform[5]);
+            if (lastY !== null && Math.abs(y - lastY) > 3) {
+              texto += linea.trim() + "\n";
+              linea = "";
+            }
+            linea += item.str;
+            lastY = y;
+          }
+          if (linea.trim()) texto += linea.trim() + "\n";
+        }
+        resolve(texto);
+      } catch(err) { reject(err); }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+async function procesarArchivos(files) {
+  const pdfs = files.filter(f => f.name.toLowerCase().endsWith(".pdf"));
+  if (!pdfs.length) return;
+
+  segmentosPendientes = [];
+
+  for (const file of pdfs) {
+    try {
+      const texto = await leerPDF(file);
+      const segs = parsearPDF(texto, file.name);
+      segmentosPendientes.push(...segs);
+    } catch(e) {
+      console.error("Error leyendo " + file.name, e);
+    }
+  }
+
+  // Ordenar por fecha
+  segmentosPendientes.sort((a,b) => a.fechaSort - b.fechaSort);
+
+  mostrarPreview();
+}
+
+function mostrarPreview() {
+  const tbody = document.getElementById("preview-tbody");
+  tbody.innerHTML = "";
+
+  segmentosPendientes.forEach((seg, idx) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${seg.fecha}</td>
+      <td>
+        <select class="tramo-select" data-idx="${idx}" onchange="segmentosPendientes[this.dataset.idx].tramo=this.value">
+          <option value="" ${seg.tramo===''?'selected':''}>—</option>
+          <option value="Ida" ${seg.tramo==='Ida'?'selected':''}>Ida</option>
+          <option value="Regreso" ${seg.tramo==='Regreso'?'selected':''}>Regreso</option>
+          <option value="Tramo interno" ${seg.tramo==='Tramo interno'?'selected':''}>Tramo interno</option>
+        </select>
+      </td>
+      <td>${seg.pasajero}</td>
+      <td>${seg.vuelo}</td>
+      <td>${seg.bookingRef}</td>
+      <td><input type="text" value="${seg.notas}" data-idx="${idx}"
+        onchange="segmentosPendientes[this.dataset.idx].notas=this.value"
+        style="width:100%;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px;font-family:inherit;"></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById("count-badge").textContent = segmentosPendientes.length + " segmento" + (segmentosPendientes.length!==1?"s":"");
+  document.getElementById("preview-section").style.display = "block";
+  document.getElementById("log-section").style.display = "none";
+}
+
+function cancelar() {
+  segmentosPendientes = [];
+  document.getElementById("preview-section").style.display = "none";
+  document.getElementById("preview-tbody").innerHTML = "";
+  fileInput.value = "";
+}
+
+// ─── ENVÍO A GOOGLE SHEETS ─────────────────────
+function log(msg, tipo="info") {
+  const cont = document.getElementById("log-container");
+  const div = document.createElement("div");
+  div.className = "log-entry " + tipo;
+  const icon = tipo==="ok"?"✅":tipo==="err"?"❌":"ℹ️";
+  div.textContent = icon + " " + msg;
+  cont.appendChild(div);
+}
+
+async function enviarASheet() {
+  if (!accessToken) { alert("Primero conectate con Google."); return; }
+  if (!segmentosPendientes.length) return;
+
+  const sheetId = document.getElementById("sheet-id-input").value.trim();
+  if (!sheetId) { alert("Ingresá el ID del Google Sheet."); return; }
+
+  document.getElementById("preview-section").style.display = "none";
+  document.getElementById("log-section").style.display = "block";
+  document.getElementById("log-container").innerHTML = "";
+
+  log("Iniciando carga...", "info");
+
+  try {
+    // Obtener metadata del Sheet
+    const metaResp = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}`,
+      { headers: { Authorization: "Bearer " + accessToken } }
+    );
+    const meta = await metaResp.json();
+
+    // Determinar año de los segmentos
+    const años = [...new Set(segmentosPendientes.map(s => s.fechaSort.getFullYear()))];
+
+    for (const año of años) {
+      const nombreHoja = String(año);
+      log(`Procesando pestaña '${nombreHoja}'...`, "info");
+
+      // Verificar si existe la hoja
+      const hojaExiste = meta.sheets.some(s => s.properties.title === nombreHoja);
+      let sheetNumId;
+
+      if (!hojaExiste) {
+        // Crear hoja nueva
+        const addResp = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`,
+          {
+            method: "POST",
+            headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
+            body: JSON.stringify({ requests: [{ addSheet: { properties: { title: nombreHoja } } }] })
+          }
+        );
+        const addData = await addResp.json();
+        sheetNumId = addData.replies[0].addSheet.properties.sheetId;
+        log(`Pestaña '${nombreHoja}' creada`, "ok");
+        await inicializarHoja(sheetId, sheetNumId);
+      } else {
+        sheetNumId = meta.sheets.find(s => s.properties.title === nombreHoja).properties.sheetId;
+        log(`Usando pestaña existente '${nombreHoja}'`, "info");
+      }
+
+      // Leer filas actuales para saber dónde insertar
+      const dataResp = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(nombreHoja+"!A:G")}`,
+        { headers: { Authorization: "Bearer " + accessToken } }
+      );
+      const dataActual = await dataResp.json();
+      const filasActuales = dataActual.values || [["Fecha","Tramo","Pasajero(s)","N° Vuelo","Airline Booking Ref","Notas","✓ Check-in"]];
+
+      // Insertar segmentos de este año
+      const segsAño = segmentosPendientes.filter(s => s.fechaSort.getFullYear() === año);
+      const filasActualizadas = insertarSegmentos(filasActuales, segsAño);
+
+      // Escribir todo de vuelta con formato
+      await escribirHojaCompleta(sheetId, sheetNumId, nombreHoja, filasActualizadas);
+      log(`${segsAño.length} segmento(s) agregado(s) a '${nombreHoja}'`, "ok");
+    }
+
+    log("¡Carga completa! Abrí el Sheet para ver los cambios.", "ok");
+    segmentosPendientes = [];
+    fileInput.value = "";
+
+  } catch(err) {
+    log("Error: " + err.message, "err");
+    console.error(err);
+  }
+}
+
+function insertarSegmentos(filasActuales, nuevosSegs) {
+  // Parsear estructura actual: [{tipo, mes, rowData, fechaSort}]
+  const estructuraActual = filasActuales.map(row => {
+    const a = (row[0]||"").trim();
+    const c = (row[2]||"").trim().toUpperCase();
+    const esMes = Object.values(MESES_ES_NOMBRE).includes(c);
+    const esHeader = a === "Fecha";
+    return { row, esMes, esHeader, rawFecha: a };
+  });
+
+  // Reconstruir con los nuevos segmentos insertados en el lugar correcto
+  const resultado = [];
+  const procesados = new Set();
+  let iActual = 0;
+
+  // Siempre empezar con header
+  if (estructuraActual.length > 0 && estructuraActual[0].esHeader) {
+    resultado.push(estructuraActual[0].row);
+    iActual = 1;
+  } else {
+    resultado.push(["Fecha","Tramo","Pasajero(s)","N° Vuelo","Airline Booking Ref","Notas","✓ Check-in"]);
+  }
+
+  // Recorrer mes por mes
+  for (let mes = 1; mes <= 12; mes++) {
+    const nombreMes = MESES_ES_NOMBRE[mes];
+
+    // Ver si hay filas de este mes en los datos actuales
+    const filasActualesMes = estructuraActual.filter(e => {
+      if (e.esMes || e.esHeader) return false;
+      return parsearMesDeTexto(e.rawFecha) === mes;
+    });
+
+    // Ver si hay nuevos segmentos para este mes
+    const nuevosEseMes = nuevosSegs.filter(s => s.fechaSort.getMonth()+1 === mes);
+
+    if (filasActualesMes.length === 0 && nuevosEseMes.length === 0) continue;
+
+    // Separador de mes
+    resultado.push([nombreMes, "", "", "", "", "", ""]);
+
+    // Mezclar filas actuales + nuevas, ordenadas por fecha
+    const todasLasFilas = [
+      ...filasActualesMes.map(e => ({ esExistente: true, row: e.row, fechaSort: parsearFechaSort(e.rawFecha, mes) })),
+      ...nuevosEseMes.map(s => ({ esExistente: false, seg: s, fechaSort: s.fechaSort }))
+    ].sort((a,b) => a.fechaSort - b.fechaSort);
+
+    for (const item of todasLasFilas) {
+      if (item.esExistente) {
+        resultado.push(item.row);
+      } else {
+        resultado.push([
+          item.seg.fecha,
+          item.seg.tramo,
+          item.seg.pasajero,
+          item.seg.vuelo,
+          item.seg.bookingRef,
+          item.seg.notas,
+          "FALSE",
+        ]);
+      }
+    }
+  }
+
+  return resultado;
+}
+
+function parsearMesDeTexto(rawFecha) {
+  if (!rawFecha) return 0;
+  const meses = {
+    jan:1,feb:2,mar:3,apr:4,may:5,jun:6,
+    jul:7,aug:8,sep:9,oct:10,nov:11,dec:12
+  };
+  const m = rawFecha.toLowerCase().match(/([a-z]+)/);
+  if (m) return meses[m[1]] || 0;
+  return 0;
+}
+
+function parsearFechaSort(rawFecha, mesFallback) {
+  if (!rawFecha) return new Date(2026, mesFallback-1, 1);
+  const m = rawFecha.match(/(\d{1,2})/);
+  const dia = m ? parseInt(m[1]) : 1;
+  return new Date(2026, mesFallback-1, dia);
+}
+
+async function inicializarHoja(sheetId, sheetNumId) {
+  // Crear encabezado y formatear
+  const requests = [
+    // Header row
+    {
+      updateCells: {
+        range: { sheetId: sheetNumId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 7 },
+        rows: [{ values: ["Fecha","Tramo","Pasajero(s)","N° Vuelo","Airline Booking Ref","Notas","✓ Check-in"].map(h => ({
+          userEnteredValue: { stringValue: h },
+          userEnteredFormat: {
+            backgroundColor: COLOR_HEADER,
+            textFormat: { bold: true, foregroundColor: {red:1,green:1,blue:1}, fontSize: 10 },
+            horizontalAlignment: "CENTER", verticalAlignment: "MIDDLE"
+          }
+        })) }],
+        fields: "userEnteredValue,userEnteredFormat"
+      }
+    },
+    // Freeze header
+    { updateSheetProperties: {
+      properties: { sheetId: sheetNumId, gridProperties: { frozenRowCount: 1 } },
+      fields: "gridProperties.frozenRowCount"
+    }},
+    // Anchos columnas
+    ...[90,110,220,110,140,200,80].map((px, i) => ({
+      updateDimensionProperties: {
+        range: { sheetId: sheetNumId, dimension: "COLUMNS", startIndex: i, endIndex: i+1 },
+        properties: { pixelSize: px }, fields: "pixelSize"
+      }
+    }))
+  ];
+
+  await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`,
+    {
+      method: "POST",
+      headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
+      body: JSON.stringify({ requests })
+    }
+  );
+}
+
+async function escribirHojaCompleta(sheetId, sheetNumId, nombreHoja, filas) {
+  // 1. Limpiar la hoja
+  await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(nombreHoja+"!A:G")}:clear`,
+    { method: "POST", headers: { Authorization: "Bearer " + accessToken } }
+  );
+
+  // 2. Escribir valores
+  await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(nombreHoja+"!A1")}?valueInputOption=USER_ENTERED`,
+    {
+      method: "PUT",
+      headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
+      body: JSON.stringify({ values: filas })
+    }
+  );
+
+  // 3. Aplicar formatos
+  const requests = [];
+  let filasPar = false;
+
+  filas.forEach((row, idx) => {
+    const esMes = Object.values(MESES_ES_NOMBRE).includes((row[0]||"").trim().toUpperCase())
+                  && !(row[0]||"").trim().toLowerCase().includes("jan");
+    const esHeader = (row[0]||"").trim() === "Fecha";
+
+    if (esHeader) {
+      requests.push({
+        updateCells: {
+          range: { sheetId: sheetNumId, startRowIndex: idx, endRowIndex: idx+1, startColumnIndex: 0, endColumnIndex: 7 },
+          rows: [{ values: Array(7).fill({ userEnteredFormat: {
+            backgroundColor: COLOR_HEADER,
+            textFormat: { bold: true, foregroundColor: {red:1,green:1,blue:1} },
+            horizontalAlignment: "CENTER", verticalAlignment: "MIDDLE"
+          }}) }],
+          fields: "userEnteredFormat"
+        }
+      });
+    } else if (esMes) {
+      requests.push({
+        updateCells: {
+          range: { sheetId: sheetNumId, startRowIndex: idx, endRowIndex: idx+1, startColumnIndex: 0, endColumnIndex: 7 },
+          rows: [{ values: Array(7).fill({ userEnteredFormat: {
+            backgroundColor: COLOR_MES,
+            textFormat: { bold: true, foregroundColor: {red:1,green:1,blue:1}, fontSize: 11 },
+            verticalAlignment: "MIDDLE"
+          }}) }],
+          fields: "userEnteredFormat"
+        }
+      });
+      requests.push({
+        mergeCells: {
+          range: { sheetId: sheetNumId, startRowIndex: idx, endRowIndex: idx+1, startColumnIndex: 0, endColumnIndex: 7 },
+          mergeType: "MERGE_ALL"
+        }
+      });
+      filasPar = false;
+    } else {
+      const color = filasPar ? COLOR_PAR : COLOR_BLANCO;
+      filasPar = !filasPar;
+
+      // Formato general de fila
+      requests.push({
+        updateCells: {
+          range: { sheetId: sheetNumId, startRowIndex: idx, endRowIndex: idx+1, startColumnIndex: 0, endColumnIndex: 7 },
+          rows: [{ values: Array(7).fill({ userEnteredFormat: {
+            backgroundColor: color, verticalAlignment: "MIDDLE"
+          }}) }],
+          fields: "userEnteredFormat"
+        }
+      });
+
+      // Dropdown en col B (índice 1)
+      requests.push({
+        setDataValidation: {
+          range: { sheetId: sheetNumId, startRowIndex: idx, endRowIndex: idx+1, startColumnIndex: 1, endColumnIndex: 2 },
+          rule: {
+            condition: { type: "ONE_OF_LIST", values: [
+              {userEnteredValue:""},{userEnteredValue:"Ida"},
+              {userEnteredValue:"Regreso"},{userEnteredValue:"Tramo interno"}
+            ]},
+            showCustomUi: true, strict: false
+          }
+        }
+      });
+
+      // Checkbox en col G (índice 6)
+      requests.push({
+        setDataValidation: {
+          range: { sheetId: sheetNumId, startRowIndex: idx, endRowIndex: idx+1, startColumnIndex: 6, endColumnIndex: 7 },
+          rule: { condition: { type: "BOOLEAN" }, showCustomUi: true }
+        }
+      });
+    }
+  });
+
+  // Enviar formatos en lotes
+  for (let i = 0; i < requests.length; i += 400) {
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`,
+      {
+        method: "POST",
+        headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
+        body: JSON.stringify({ requests: requests.slice(i, i+400) })
+      }
+    );
+  }
+}
+</script>
+
+<!-- Google APIs -->
+<script src="https://apis.google.com/js/api.js" onload="gapiStart()"></script>
+<script src="https://accounts.google.com/gsi/client" onload="gisStart()"></script>
+<!-- PDF.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+</script>
+
+</body>
+</html>
