@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biblos Travel — Check-in Manager</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Serif+Display&display=swap');
+  :root {
+    --navy:#1F4E79; --sky:#2E86C1; --accent:#E8A020; --light:#DEEAF1;
+    --bg:#F5F8FA; --text:#1a2633; --muted:#6b8096; --success:#1a7a4a;
+    --error:#c0392b; --border:#cddce8; --orange:#E67E22;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  header{background:var(--navy);padding:18px 32px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,0.18);}
+  header .logo{font-family:'DM Serif Display',serif;font-size:22px;color:white;}
+  header .logo span{color:var(--accent);}
+  header .subtitle{font-size:11px;color:rgba(255,255,255,0.5);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+  header .divider{width:1px;height:36px;background:rgba(255,255,255,0.2);margin:0 8px;}
+
+  .main{max-width:920px;margin:0 auto;padding:28px 20px;}
+
+  /* Tabs */
+  .tabs{display:flex;gap:4px;margin-bottom:20px;background:white;padding:6px;border-radius:10px;border:1px solid var(--border);}
+  .tab{flex:1;padding:9px;text-align:center;border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all 0.15s;}
+  .tab.active{background:var(--navy);color:white;}
+  .tab-content{display:none;}
+  .tab-content.active{display:block;}
+
+  /* Cards */
+  .card{background:white;border-radius:12px;padding:28px;border:1px solid var(--border);margin-bottom:20px;}
+  .card h2{font-size:14px;font-weight:600;color:var(--navy);margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+
+  /* Auth */
+  .auth-status{display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:8px;font-size:13px;font-weight:500;}
+  .auth-status.disconnected{background:#fef3e2;color:#a05c00;border:1px solid #f5cfa0;}
+  .auth-status.connected{background:#e8f8f0;color:var(--success);border:1px solid #a8dfc0;}
+
+  /* Buttons */
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer;border:none;transition:all 0.15s;}
+  .btn-primary{background:var(--navy);color:white;} .btn-primary:hover{background:var(--sky);}
+  .btn-google{background:white;color:#333;border:1px solid var(--border);margin-top:12px;} .btn-google:hover{background:#f5f5f5;}
+  .btn-google img{width:16px;height:16px;}
+  .btn-cancel{background:white;color:var(--muted);border:1px solid var(--border);} .btn-cancel:hover{background:#f5f5f5;}
+  .btn-orange{background:var(--orange);color:white;} .btn-orange:hover{background:#d35400;}
+  .btn-sm{padding:6px 12px;font-size:12px;}
+
+  /* Drop zone */
+  .drop-zone{border:2px dashed var(--border);border-radius:10px;padding:40px 24px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg);}
+  .drop-zone:hover,.drop-zone.dragover{border-color:var(--sky);background:#eaf4fb;}
+  .drop-zone .icon{font-size:36px;margin-bottom:10px;}
+  .drop-zone p{color:var(--muted);font-size:13px;line-height:1.6;}
+  .drop-zone strong{color:var(--navy);}
+  #file-input{display:none;}
+
+  /* PNR textarea */
+  .pnr-box{width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:13px;resize:vertical;color:var(--text);}
+  .pnr-box:focus{outline:none;border-color:var(--sky);}
+
+  /* Form inputs */
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+  .form-group{display:flex;flex-direction:column;gap:5px;}
+  .form-group label{font-size:12px;font-weight:500;color:var(--muted);}
+  .form-group input,.form-group select{padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text);}
+  .form-group input:focus,.form-group select:focus{outline:none;border-color:var(--sky);}
+  .color-row{display:flex;gap:10px;align-items:center;margin-top:4px;}
+  .color-opt{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all 0.15s;}
+  .color-opt.selected{border-color:var(--navy);transform:scale(1.15);}
+
+  /* Preview table */
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  thead th{background:var(--navy);color:white;padding:9px 11px;text-align:left;font-weight:500;font-size:11px;letter-spacing:0.4px;text-transform:uppercase;}
+  tbody tr{border-bottom:1px solid var(--border);}
+  tbody tr:hover{background:var(--bg);}
+  tbody td{padding:9px 11px;vertical-align:middle;}
+  .tramo-select,.notas-input{font-family:'Inter',sans-serif;font-size:12px;padding:4px 7px;border:1px solid var(--border);border-radius:5px;background:white;}
+  .notas-input{width:100%;}
+  .badge{background:var(--accent);color:white;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;}
+  .action-bar{display:flex;gap:10px;margin-top:18px;justify-content:flex-end;}
+
+  /* Log */
+  .log-entry{font-size:13px;padding:5px 0;border-bottom:1px solid var(--bg);display:flex;gap:8px;line-height:1.5;}
+  .log-entry.ok{color:var(--success);} .log-entry.err{color:var(--error);} .log-entry.info{color:var(--muted);}
+
+  /* Alert list */
+  .alert-item{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:13px;}
+  .alert-color-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
+  .alert-item button{margin-left:auto;background:none;border:none;color:var(--error);cursor:pointer;font-size:16px;padding:0 4px;}
+
+  footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">Biblos <span>Travel</span></div>
+    <div class="subtitle">Check-in Manager</div>
+  </div>
+  <div class="divider"></div>
+  <div id="header-user" style="font-size:12px;color:rgba(255,255,255,0.5);">No conectado</div>
+</header>
+
+<div class="main">
+
+  <!-- AUTH -->
+  <div class="card">
+    <h2>🔐 Conexión con Google</h2>
+    <div id="auth-status" class="auth-status disconnected">⚠️ No conectado</div>
+    <button class="btn btn-google" onclick="iniciarAuth()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg">
+      Conectar con Google
+    </button>
+    <div id="sheet-config" style="margin-top:14px;display:none;">
+      <label style="font-size:12px;color:var(--muted);font-weight:500;">ID del Google Sheet:</label>
+      <input id="sheet-id-input" type="text" value="1XsoKCHrTyXRetdy8S0api16gvJfC7Lz0ZMhzoX_RSrY"
+        style="width:100%;margin-top:5px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-family:monospace;font-size:12px;">
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('pdf')">✈️ Cargar PDF</div>
+    <div class="tab" onclick="switchTab('pnr')">📋 Cargar PNR</div>
+    <div class="tab" onclick="switchTab('alertas')">🟠 Alertas</div>
+  </div>
+
+  <!-- TAB: PDF -->
+  <div id="tab-pdf" class="tab-content active">
+    <div class="card">
+      <h2>📄 Subir tickets PDF</h2>
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <div class="icon">✈️</div>
+        <p><strong>Arrastrá los PDFs acá</strong> o hacé clic para seleccionarlos</p>
+        <p style="margin-top:5px;font-size:12px;">Podés subir varios tickets a la vez</p>
+      </div>
+      <input type="file" id="file-input" accept=".pdf" multiple>
+    </div>
+  </div>
+
+  <!-- TAB: PNR -->
+  <div id="tab-pnr" class="tab-content">
+    <div class="card">
+      <h2>📋 Ingresar texto de PNR</h2>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Pegá el texto del PNR de Amadeus. Podés pegar varios PNRs juntos.</p>
+      <textarea id="pnr-input" class="pnr-box" placeholder="AYZ5JD&#10;  1.PIRES DE MELLO/TERESA CRISTINA&#10;  2  LA8193 G 05AUG 3 AEPGRU HK1  1145 1425  05AUG  E  LA/KHHGLS&#10;  3  LA8138 O 20AUG 4 GRUAEP HK1  1700 2000  20AUG  E  LA/KHHGLS"></textarea>
+      <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+        <button class="btn btn-primary" onclick="procesarPNR()">Procesar PNR →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: ALERTAS -->
+  <div id="tab-alertas" class="tab-content">
+    <div class="card">
+      <h2>🟠 Nueva alerta</h2>
+      <div class="form-group" style="margin-bottom:14px;">
+        <label>Tipo de alerta</label>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text);font-weight:400;">
+            <input type="radio" name="alerta-tipo" value="puntual" id="tipo-puntual" checked onchange="toggleTipoAlerta()"> Puntual (un día)
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text);font-weight:400;">
+            <input type="radio" name="alerta-tipo" value="periodo" id="tipo-periodo" onchange="toggleTipoAlerta()"> Período (rango de fechas)
+          </label>
+        </div>
+      </div>
+      <div id="alerta-fecha-puntual" class="form-row" style="grid-template-columns:1fr 1fr;">
+        <div class="form-group">
+          <label>Fecha</label>
+          <input type="date" id="alerta-fecha">
+        </div>
+        <div></div>
+      </div>
+      <div id="alerta-fecha-periodo" class="form-row" style="display:none;">
+        <div class="form-group">
+          <label>Fecha inicio</label>
+          <input type="date" id="alerta-desde">
+        </div>
+        <div class="form-group">
+          <label>Fecha fin</label>
+          <input type="date" id="alerta-hasta">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:14px;">
+        <label>Texto de la alerta</label>
+        <input type="text" id="alerta-texto" placeholder="Ej: CERRADO AEP — Paro de trabajadores">
+      </div>
+      <div class="form-group">
+        <label>Color</label>
+        <div class="color-row">
+          <div class="color-opt selected" style="background:#E67E22;" data-color="naranja" onclick="selColor(this)"></div>
+          <div class="color-opt" style="background:#E74C3C;" data-color="rojo" onclick="selColor(this)"></div>
+          <div class="color-opt" style="background:#F1C40F;" data-color="amarillo" onclick="selColor(this)"></div>
+          <div class="color-opt" style="background:#2ECC71;" data-color="verde" onclick="selColor(this)"></div>
+          <div class="color-opt" style="background:#3498DB;" data-color="azul" onclick="selColor(this)"></div>
+          <span id="color-label" style="font-size:12px;color:var(--muted);">Naranja</span>
+        </div>
+      </div>
+      <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+        <button class="btn btn-orange" onclick="agregarAlerta()">+ Agregar alerta</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>📋 Alertas cargadas <span class="badge" id="alertas-count">0</span></h2>
+      <div id="alertas-list"><p style="color:var(--muted);font-size:13px;">No hay alertas cargadas.</p></div>
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div id="preview-section" style="display:none;" class="card">
+    <h2>Vista previa <span class="badge" id="count-badge">0</span></h2>
+    <table>
+      <thead><tr>
+        <th>Fecha</th><th>Tramo</th><th>Pasajero(s)</th><th>N° Vuelo</th><th>Booking Ref</th><th>Notas</th>
+      </tr></thead>
+      <tbody id="preview-tbody"></tbody>
+    </table>
+    <div class="action-bar">
+      <button class="btn btn-cancel" onclick="cancelar()">Cancelar</button>
+      <button class="btn btn-primary" onclick="enviarASheet()">⬆ Cargar al Sheet</button>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div id="log-section" style="display:none;" class="card">
+    <h2>📋 Resultado</h2>
+    <div id="log-container"></div>
+    <div style="margin-top:16px;">
+      <button class="btn btn-primary btn-sm" onclick="resetUI()">✓ Cargar más tickets</button>
+    </div>
+  </div>
+
+</div>
+<footer>Biblos Travel · Check-in Manager</footer>
+
+<script>
+// ─── CONFIG ────────────────────────────────────
+const CLIENT_ID = "228520995750-b3k6v91dtn4ere1tckv2iqv8jvb6nb83.apps.googleusercontent.com";
+const SCOPES    = "https://www.googleapis.com/auth/spreadsheets";
+const DISCOVERY = "https://sheets.googleapis.com/$discovery/rest?version=v4";
+
+const MESES_EN = {January:1,February:2,March:3,April:4,May:5,June:6,July:7,August:8,September:9,October:10,November:11,December:12};
+const MESES_ES = {1:"ENERO",2:"FEBRERO",3:"MARZO",4:"ABRIL",5:"MAYO",6:"JUNIO",7:"JULIO",8:"AGOSTO",9:"SEPTIEMBRE",10:"OCTUBRE",11:"NOVIEMBRE",12:"DICIEMBRE"};
+const MESES_ABR = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+
+function convertirFechaExcel(val){
+  if(!val) return val;
+  const n=parseInt(val);
+  if(!isNaN(n) && n>40000 && n<55000){
+    // Número de serie de Excel → fecha
+    const fecha=new Date((n-25569)*86400*1000); // Excel epoch a JS epoch
+    const meses=["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+    return String(fecha.getUTCDate()).padStart(2,"0")+meses[fecha.getUTCMonth()];
+  }
+  return val;
+}
+
+const COLOR_MES    = {red:0.122,green:0.306,blue:0.475};
+const COLOR_HEADER = {red:0.122,green:0.306,blue:0.475};
+const COLOR_PAR    = {red:0.871,green:0.918,blue:0.945};
+const COLOR_BLANCO = {red:1,green:1,blue:1};
+const COLOR_VACIO  = {red:0.96,green:0.96,blue:0.96};
+
+const COLORES_ALERTA = {
+  naranja:{r:1,g:0.737,b:0.475,label:"Naranja"},
+  rojo:   {r:0.957,g:0.694,b:0.671,label:"Rojo"},
+  amarillo:{r:1,g:0.949,b:0.8,label:"Amarillo"},
+  verde:  {r:0.714,g:0.882,b:0.698,label:"Verde"},
+  azul:   {r:0.643,g:0.827,b:0.945,label:"Azul"},
+};
+
+let tokenClient, gapiLoaded=false, gisLoaded=false, accessToken=null;
+let segmentosPendientes=[];
+let alertas=[];
+let colorSeleccionado="naranja";
+
+// ─── TABS ──────────────────────────────────────
+function switchTab(name){
+  document.querySelectorAll(".tab").forEach((t,i)=>{
+    const names=["pdf","pnr","alertas"];
+    t.classList.toggle("active", names[i]===name);
+  });
+  document.querySelectorAll(".tab-content").forEach(c=>c.classList.remove("active"));
+  document.getElementById("tab-"+name).classList.add("active");
+}
+
+// ─── AUTH ──────────────────────────────────────
+function gapiStart(){
+  gapi.load("client",async()=>{
+    await gapi.client.init({discoveryDocs:[DISCOVERY]});
+    gapiLoaded=true;
+  });
+}
+function gisStart(){
+  tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:CLIENT_ID, scope:SCOPES,
+    callback:(resp)=>{
+      if(resp.error){log("Error auth: "+resp.error,"err");return;}
+      accessToken=resp.access_token;
+      gapi.client.setToken({access_token:accessToken});
+      document.getElementById("auth-status").className="auth-status connected";
+      document.getElementById("auth-status").textContent="✅ Conectado con Google Sheets";
+      document.getElementById("sheet-config").style.display="block";
+      document.getElementById("header-user").textContent="✅ Conectado";
+    }
+  });
+  gisLoaded=true;
+}
+function iniciarAuth(){
+  if(!gapiLoaded||!gisLoaded){alert("Cargando... intentá en un segundo.");return;}
+  tokenClient.requestAccessToken({prompt:"consent"});
+}
+
+// ─── COLOR SELECTOR ────────────────────────────
+function selColor(el){
+  document.querySelectorAll(".color-opt").forEach(e=>e.classList.remove("selected"));
+  el.classList.add("selected");
+  colorSeleccionado=el.dataset.color;
+  document.getElementById("color-label").textContent=COLORES_ALERTA[colorSeleccionado].label;
+}
+
+// ─── ALERTAS ───────────────────────────────────
+function toggleTipoAlerta(){
+  const esPuntual=document.getElementById("tipo-puntual").checked;
+  document.getElementById("alerta-fecha-puntual").style.display=esPuntual?"grid":"none";
+  document.getElementById("alerta-fecha-periodo").style.display=esPuntual?"none":"grid";
+}
+
+function agregarAlerta(){
+  const texto=document.getElementById("alerta-texto").value.trim();
+  const esPuntual=document.getElementById("tipo-puntual").checked;
+  if(esPuntual){
+    const fecha=document.getElementById("alerta-fecha").value;
+    if(!fecha||!texto){alert("Completá todos los campos.");return;}
+    alertas.push({tipo:"puntual",desde:fecha,hasta:fecha,texto,color:colorSeleccionado});
+    document.getElementById("alerta-fecha").value="";
+  } else {
+    const desde=document.getElementById("alerta-desde").value;
+    const hasta=document.getElementById("alerta-hasta").value;
+    if(!desde||!hasta||!texto){alert("Completá todos los campos.");return;}
+    alertas.push({tipo:"periodo",desde,hasta,texto,color:colorSeleccionado});
+    document.getElementById("alerta-desde").value="";
+    document.getElementById("alerta-hasta").value="";
+  }
+  renderAlertas();
+  document.getElementById("alerta-texto").value="";
+}
+
+function renderAlertas(){
+  const cont=document.getElementById("alertas-list");
+  document.getElementById("alertas-count").textContent=alertas.length;
+  if(!alertas.length){cont.innerHTML='<p style="color:var(--muted);font-size:13px;">No hay alertas cargadas.</p>';return;}
+  cont.innerHTML=alertas.map((a,i)=>{
+    const c=COLORES_ALERTA[a.color];
+    const fechaLabel=a.tipo==="puntual"?a.desde:`${a.desde} al ${a.hasta}`;
+    const tipoLabel=a.tipo==="puntual"?"📅 Puntual":"📆 Período";
+    return `<div class="alert-item">
+      <div class="alert-color-dot" style="background:rgb(${Math.round(c.r*255)},${Math.round(c.g*255)},${Math.round(c.b*255)})"></div>
+      <span style="color:var(--muted);font-size:11px;">${tipoLabel}</span>
+      <span>${fechaLabel}</span>
+      <span style="font-weight:600;">${a.texto}</span>
+      <button onclick="alertas.splice(${i},1);renderAlertas()">✕</button>
+    </div>`;
+  }).join("");
+}
+
+function getColorAlerta(fechaStr){
+  const date = parsearFechaCompleta(fechaStr);
+  if(!date) return null;
+  // Solo alertas de PERIODO colorean vuelos
+  for(const a of alertas){
+    if(a.tipo==="puntual") continue;
+    const desde=new Date(a.desde+"T00:00:00");
+    const hasta=new Date(a.hasta+"T23:59:59");
+    if(date>=desde && date<=hasta) return a;
+  }
+  return null;
+}
+
+function getAlertaPuntual(fechaStr){
+  const date = parsearFechaCompleta(fechaStr);
+  if(!date) return null;
+  for(const a of alertas){
+    if(a.tipo!=="puntual") continue;
+    const d=new Date(a.desde+"T00:00:00");
+    if(date.toDateString()===d.toDateString()) return a;
+  }
+  return null;
+}
+
+function parsearFechaCompleta(raw){
+  if(!raw) return null;
+  raw=raw.trim();
+  // "25 August" → buscar mes en inglés
+  for(const [nombre,num] of Object.entries(MESES_EN)){
+    if(raw.includes(nombre)){
+      const dia=parseInt(raw.match(/\d+/)?.[0]||"1");
+      return new Date(new Date().getFullYear(),num-1,dia);
+    }
+  }
+  // "06SEP" o "06sep"
+  for(const [abr,num] of Object.entries(MESES_ABR)){
+    if(raw.toLowerCase().includes(abr)){
+      const dia=parseInt(raw.match(/\d+/)?.[0]||"1");
+      return new Date(new Date().getFullYear(),num-1,dia);
+    }
+  }
+  return null;
+}
+
+// ─── PDF PARSING ───────────────────────────────
+function limpiarCiudad(raw){
+  raw=raw.replace(/([a-záéíóúñ])([A-ZÁÉÍÓÚÑ])/g,"$1 $2");
+  raw=raw.replace(/(\d)([A-ZÁÉÍÓÚÑ])/g,"$1 $2");
+  raw=raw.replace(/,?\s*\(.*/,"");
+  raw=raw.replace(/\(\+\)/g,"");
+  raw=raw.replace(/Terminal.*/gi,"");
+  return raw.trim().replace(/^[, ]+|[, ]+$/g,"");
+}
+function parsearFechaHora(token){
+  const m=token.match(/^(\d{1,2})([A-Za-z]+)(\d{2}:\d{2})$/);
+  if(!m) return null;
+  const mesNum=MESES_EN[m[2]]||0;
+  return {dia:parseInt(m[1]),mes:mesNum,hora:m[3],raw:m[1]+" "+m[2]};
+}
+function parsearPDFTexto(texto,nombreArchivo){
+  const lineas=texto.split("\n");
+  const segs=[];
+  let pasajero="",airlineRef="";
+
+  // Pasajero
+  const mPax=texto.match(/Traveler\s+(.+?)\s+Agency/);
+  if(mPax) pasajero=mPax[1].trim();
+
+  // Airline Booking Ref - buscar patron "XX (Nombre): CODIGO"
+  const mRef=texto.match(/Airline Booking Reference[^\n]*\n([^\n]+):\s*(\S+)/);
+  if(mRef) airlineRef=mRef[2].trim();
+
+  // Buscar vuelos: linea que contenga patron "Aerolineas Argentinas AR 1360"
+  // o cualquier aerolinea seguida de codigo 2 letras + numero
+  for(let i=0;i<lineas.length;i++){
+    const linea=lineas[i].trim();
+
+    // Patron: cualquier texto que termine en "XX NNNN" donde XX=codigo aerolinea, NNNN=numero vuelo
+    const mV=linea.match(/^.+\s+([A-Z]{2})\s+(\d{3,4})\s*$/);
+    if(!mV) continue;
+
+    const codigo=mV[1].trim();
+    const nro=mV[2].trim();
+
+    // Buscar Departure y Arrival en las proximas lineas
+    let depInfo=null, origen="", arrInfo=null, destino="";
+
+    for(let j=i+1;j<Math.min(i+10,lineas.length);j++){
+      const l=lineas[j].trim();
+
+      // Departure: "Departure 25 August 12:45 Buenos Aires, ..."
+      if(!depInfo && l.startsWith("Departure")){
+        // Extraer fecha+hora: "25 August 12:45"
+        const mDep=l.match(/Departure\s+(\d{1,2})\s+([A-Za-z]+)\s+(\d{2}:\d{2})\s+(.*)/);
+        if(mDep){
+          const dia=parseInt(mDep[1]);
+          const mesStr=mDep[2];
+          const mesNum=MESES_EN[mesStr]||0;
+          depInfo={dia,mes:mesNum,hora:mDep[3],raw:`${mDep[1]} ${mDep[2]}`};
+          origen=limpiarCiudad(mDep[4]);
+        }
+      }
+
+      // Arrival: "Arrival 25 August 17:30 Bogota, ..."
+      if(!arrInfo && l.startsWith("Arrival")){
+        const mArr=l.match(/Arrival\s+(\d{1,2})\s+([A-Za-z]+)\s+(\d{2}:\d{2})\s+(.*)/);
+        if(mArr){
+          const dia=parseInt(mArr[1]);
+          const mesStr=mArr[2];
+          const mesNum=MESES_EN[mesStr]||0;
+          arrInfo={dia,mes:mesNum,hora:mArr[3],raw:`${mArr[1]} ${mArr[2]}`};
+          destino=limpiarCiudad(mArr[4]);
+        }
+      }
+
+      if(depInfo && arrInfo) break;
+    }
+
+    if(!depInfo) continue;
+
+    const tramo=segs.length===0?"Ida":"Regreso";
+    segs.push({
+      fecha:depInfo.raw,
+      fechaSort:new Date(new Date().getFullYear(),depInfo.mes-1,depInfo.dia),
+      tramo, pasajero,
+      vuelo:`${codigo} ${nro}`,
+      bookingRef:airlineRef,
+      notas:"",
+      archivo:nombreArchivo
+    });
+  }
+  return segs;
+}
+
+// ─── PNR PARSING ───────────────────────────────
+function procesarPNR(){
+  const texto=document.getElementById("pnr-input").value.trim();
+  if(!texto){alert("Pegá el texto del PNR primero.");return;}
+  const segs=parsearPNRTexto(texto);
+  if(!segs.length){alert("No se encontraron segmentos de vuelo en el texto.");return;}
+  segmentosPendientes=segs;
+  mostrarPreview();
+}
+
+function parsearPNRTexto(texto){
+  const segs=[];
+  const bloques=texto.split(/\n(?=[A-Z0-9]{6}\s*\n|\d+\.[A-Z])/);
+
+  for(const bloque of bloques){
+    const lineas=bloque.split("\n").map(l=>l.trim()).filter(Boolean);
+    if(!lineas.length) continue;
+
+    // Extraer PNR (6 caracteres alfanuméricos solos en una línea)
+    let pnr="";
+    const mPnr=lineas[0].match(/^([A-Z0-9]{6})\s*$/);
+    if(mPnr) pnr=mPnr[1];
+
+    // Extraer pasajeros: líneas con "1.APELLIDO/NOMBRE  2.APELLIDO/NOMBRE"
+    let pasajeros=[];
+    for(const l of lineas){
+      const paxMatches=[...l.matchAll(/\d+\.\s*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s\/\(\)]+?)(?=\s+\d+\.|$)/g)];
+      if(paxMatches.length){
+        paxMatches.forEach(m=>{ const p=m[1].trim().replace(/\(CHD\)/i,"").trim(); if(p) pasajeros.push(p); });
+      }
+    }
+    // Si no encontró pasajeros con ese patrón, buscar líneas que empiecen con número+punto
+    if(!pasajeros.length){
+      for(const l of lineas){
+        const m=l.match(/^\d+\.\s*([A-ZÁÉÍÓÚÑ][A-Z\s\/]+)$/i);
+        if(m) pasajeros.push(m[1].trim());
+      }
+    }
+    const pasajeroStr=pasajeros.join(" / ") || "Sin nombre";
+
+    // Extraer segmentos de vuelo
+    // Formato: "2  AR1923 N 06SEP 7 BRCAEP HK2  1725 1930  06SEP  E  AR/ALUAGO"
+    // o:       "2  LA 8193 G 05AUG 3 AEPGRU HK1  1145 1425  05AUG  E  LA/KHHGLS"
+    let segIdx=0;
+    for(const l of lineas){
+      const m=l.match(/^\d+\s+([A-Z]{2})\s*(\d{3,4})\s+\w+\s+(\d{1,2}[A-Z]{3})\s+\d\s+([A-Z]{6})/i);
+      if(!m) continue;
+
+      const codAero=m[1].toUpperCase();
+      const nroVuelo=m[2];
+      const fechaRaw=m[3]; // "06SEP"
+      const rutaRaw=m[4];  // "BRCAEP"
+      
+      // Parsear fecha
+      const diaStr=fechaRaw.match(/\d+/)?.[0]||"1";
+      const mesAbr=fechaRaw.replace(/\d/g,"").toLowerCase();
+      const mesNum=MESES_ABR[mesAbr]||1;
+      const fechaDisplay=`${diaStr} ${fechaRaw.replace(/\d/g,"").charAt(0).toUpperCase()+fechaRaw.replace(/\d/g,"").slice(1).toLowerCase()}`;
+
+      // Booking ref: buscar patrón CODIGO/XXXXXX al final de la línea
+      let bookingRef="";
+      const mRef=l.match(/([A-Z]{2})\/([A-Z0-9]{4,8})\s*$/i);
+      if(mRef) bookingRef=`${mRef[1].toUpperCase()}/${mRef[2].toUpperCase()}`;
+      else if(pnr) bookingRef=`${codAero}/lev`;
+      else bookingRef=`${codAero}/lev`;
+
+      const tramo=segIdx===0?"Ida":"Regreso";
+      segs.push({
+        fecha:fechaDisplay,
+        fechaSort:new Date(new Date().getFullYear(),mesNum-1,parseInt(diaStr)),
+        tramo, pasajero:pasajeroStr,
+        vuelo:`${codAero} ${nroVuelo}`,
+        bookingRef, notas:"",
+        archivo:"PNR "+( pnr||"manual")
+      });
+      segIdx++;
+    }
+  }
+
+  // Ordenar por fecha
+  segs.sort((a,b)=>a.fechaSort-b.fechaSort);
+  return segs;
+}
+
+// ─── PDF READER ────────────────────────────────
+async function leerPDF(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=async(e)=>{
+      const arr=new Uint8Array(e.target.result);
+      try{
+        const pdf=await pdfjsLib.getDocument({data:arr}).promise;
+        let texto="";
+        for(let i=1;i<=pdf.numPages;i++){
+          const page=await pdf.getPage(i);
+          const content=await page.getTextContent();
+          let linea="",lastY=null;
+          for(const item of content.items){
+            const y=Math.round(item.transform[5]);
+            if(lastY!==null&&Math.abs(y-lastY)>3){texto+=linea.trim()+"\n";linea="";}
+            linea+=item.str;lastY=y;
+          }
+          if(linea.trim()) texto+=linea.trim()+"\n";
+        }
+        resolve(texto);
+      }catch(err){reject(err);}
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+const dropZone=document.getElementById("drop-zone");
+const fileInput=document.getElementById("file-input");
+dropZone.addEventListener("dragover",e=>{e.preventDefault();dropZone.classList.add("dragover");});
+dropZone.addEventListener("dragleave",()=>dropZone.classList.remove("dragover"));
+dropZone.addEventListener("drop",e=>{e.preventDefault();dropZone.classList.remove("dragover");procesarArchivos([...e.dataTransfer.files]);});
+fileInput.addEventListener("change",()=>procesarArchivos([...fileInput.files]));
+
+async function procesarArchivos(files){
+  const pdfs=files.filter(f=>f.name.toLowerCase().endsWith(".pdf"));
+  if(!pdfs.length) return;
+  segmentosPendientes=[];
+  for(const file of pdfs){
+    try{
+      const txt=await leerPDF(file);
+      console.log("=== TEXTO EXTRAIDO ===");
+      console.log(txt);
+      console.log("=== FIN TEXTO ===");
+      const segs=parsearPDFTexto(txt,file.name);
+      console.log("Segmentos encontrados:",segs.length);
+      segmentosPendientes.push(...segs);
+    }
+    catch(e){console.error("Error:",file.name,e);}
+  }
+  segmentosPendientes.sort((a,b)=>a.fechaSort-b.fechaSort);
+  mostrarPreview();
+}
+
+// ─── UI ────────────────────────────────────────
+function mostrarPreview(){
+  const tbody=document.getElementById("preview-tbody");
+  tbody.innerHTML="";
+  segmentosPendientes.forEach((seg,idx)=>{
+    const alerta=getColorAlerta(seg.fecha);
+    const bgAlerta=alerta?`background:rgba(${Math.round(COLORES_ALERTA[alerta.color].r*255)},${Math.round(COLORES_ALERTA[alerta.color].g*255)},${Math.round(COLORES_ALERTA[alerta.color].b*255)},0.3);`:""
+    const tr=document.createElement("tr");
+    tr.style.cssText=bgAlerta;
+    tr.innerHTML=`
+      <td>${seg.fecha}${alerta?` <span title="${alerta.texto}" style="cursor:help;">🟠</span>`:""}</td>
+      <td><select class="tramo-select" data-idx="${idx}" onchange="segmentosPendientes[this.dataset.idx].tramo=this.value">
+        <option value="" ${seg.tramo===''?'selected':''}>—</option>
+        <option value="Ida" ${seg.tramo==='Ida'?'selected':''}>Ida</option>
+        <option value="Regreso" ${seg.tramo==='Regreso'?'selected':''}>Regreso</option>
+        <option value="Tramo interno" ${seg.tramo==='Tramo interno'?'selected':''}>Tramo interno</option>
+      </select></td>
+      <td>${seg.pasajero}</td>
+      <td>${seg.vuelo}</td>
+      <td>${seg.bookingRef}</td>
+      <td><input class="notas-input" type="text" value="${seg.notas}" data-idx="${idx}" onchange="segmentosPendientes[this.dataset.idx].notas=this.value"></td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById("count-badge").textContent=segmentosPendientes.length+" segmento"+(segmentosPendientes.length!==1?"s":"");
+  document.getElementById("preview-section").style.display="block";
+  document.getElementById("log-section").style.display="none";
+}
+
+function cancelar(){
+  segmentosPendientes=[];
+  document.getElementById("preview-section").style.display="none";
+  document.getElementById("preview-tbody").innerHTML="";
+  fileInput.value="";
+  document.getElementById("pnr-input").value="";
+}
+
+function resetUI(){
+  cancelar();
+  document.getElementById("log-section").style.display="none";
+  document.getElementById("log-container").innerHTML="";
+}
+
+function log(msg,tipo="info"){
+  const cont=document.getElementById("log-container");
+  const div=document.createElement("div");
+  div.className="log-entry "+tipo;
+  div.textContent=(tipo==="ok"?"✅":tipo==="err"?"❌":"ℹ️")+" "+msg;
+  cont.appendChild(div);
+}
+
+// ─── ENVÍO A GOOGLE SHEETS ─────────────────────
+async function enviarASheet(){
+  if(!accessToken){alert("Primero conectate con Google.");return;}
+  if(!segmentosPendientes.length) return;
+  const sheetId=document.getElementById("sheet-id-input").value.trim();
+  if(!sheetId){alert("Ingresá el ID del Sheet.");return;}
+
+  document.getElementById("preview-section").style.display="none";
+  document.getElementById("log-section").style.display="block";
+  document.getElementById("log-container").innerHTML="";
+  log("Iniciando carga...","info");
+
+  try{
+    const metaResp=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}`,{headers:{Authorization:"Bearer "+accessToken}});
+    const meta=await metaResp.json();
+    const años=[...new Set(segmentosPendientes.map(s=>s.fechaSort.getFullYear()))];
+
+    for(const año of años){
+      const nombreHoja=String(año);
+      let sheetNumId;
+      const hojaExiste=meta.sheets.some(s=>s.properties.title===nombreHoja);
+      if(!hojaExiste){
+        const addResp=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`,{
+          method:"POST",headers:{Authorization:"Bearer "+accessToken,"Content-Type":"application/json"},
+          body:JSON.stringify({requests:[{addSheet:{properties:{title:nombreHoja}}}]})
+        });
+        const addData=await addResp.json();
+        sheetNumId=addData.replies[0].addSheet.properties.sheetId;
+        await inicializarHoja(sheetId,sheetNumId);
+        log(`Pestaña '${nombreHoja}' creada`,"ok");
+      }else{
+        sheetNumId=meta.sheets.find(s=>s.properties.title===nombreHoja).properties.sheetId;
+      }
+
+      const dataResp=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(nombreHoja+"!A:G")}`,{headers:{Authorization:"Bearer "+accessToken}});
+      const dataActual=await dataResp.json();
+      const filasActuales=dataActual.values||[["Fecha","Tramo","Pasajero(s)","N° Vuelo","Airline Booking Ref","Notas","✓ Check-in"]];
+      const segsAño=segmentosPendientes.filter(s=>s.fechaSort.getFullYear()===año);
+      const filasNuevas=insertarSegmentos(filasActuales,segsAño);
+      await escribirHojaCompleta(sheetId,sheetNumId,nombreHoja,filasNuevas);
+      log(`${segsAño.length} segmento(s) cargado(s) en '${nombreHoja}'`,"ok");
+    }
+    log("¡Carga completa!","ok");
+    segmentosPendientes=[];
+    fileInput.value="";
+  }catch(err){log("Error: "+err.message,"err");console.error(err);}
+}
+
+function parsearMesDeTexto(rawFecha){
+  if(!rawFecha) return 0;
+  const converted=convertirFechaExcel(rawFecha);
+  const r=converted.toLowerCase();
+  for(const[abr,num] of Object.entries(MESES_ABR)) if(r.includes(abr)) return num;
+  for(const[nom,num] of Object.entries(MESES_EN)) if(r.toLowerCase().includes(nom.toLowerCase())) return num;
+  return 0;
+}
+function parsearDiaDeTexto(rawFecha){
+  const m=rawFecha.match(/(\d{1,2})/);
+  return m?parseInt(m[1]):1;
+}
+function parsearFechaSortDeTexto(rawFecha,mesFallback){
+  if(!rawFecha) return new Date(new Date().getFullYear(),mesFallback-1,1);
+  const mes=parsearMesDeTexto(rawFecha)||mesFallback;
+  const dia=parsearDiaDeTexto(rawFecha);
+  return new Date(new Date().getFullYear(),mes-1,dia);
+}
+
+function insertarSegmentos(filasActuales,nuevosSegs){
+  const resultado=[];
+  // Header siempre primero
+  const header=filasActuales.find(r=>(r[0]||"").trim()==="Fecha")||["Fecha","Tramo","Pasajero(s)","N° Vuelo","Airline Booking Ref","Notas","✓ Check-in"];
+  resultado.push(header);
+
+  for(let mes=1;mes<=12;mes++){
+    const nombreMes=MESES_ES[mes];
+    const filasExistMes=filasActuales.filter(r=>{
+      if((r[0]||"").trim()==="Fecha") return false;
+      if(Object.values(MESES_ES).includes((r[0]||"").trim().toUpperCase())) return false;
+      // Convertir fechas numéricas antes de filtrar
+      const fechaConv=convertirFechaExcel((r[0]||"").trim());
+      return parsearMesDeTexto(fechaConv)===mes;
+    }).map(r=>{
+      // Convertir fecha numérica en la fila
+      const nuevaFila=[...r];
+      nuevaFila[0]=convertirFechaExcel((r[0]||"").trim());
+      return nuevaFila;
+    });
+    const nuevosMes=nuevosSegs.filter(s=>s.fechaSort.getMonth()+1===mes);
+    if(!filasExistMes.length&&!nuevosMes.length) continue;
+
+    resultado.push([nombreMes,"","","","","",""]);
+
+    // Agrupar por día y mezclar
+    const todasPorDia={};
+    for(const r of filasExistMes){
+      const dia=parsearDiaDeTexto(r[0]||"");
+      if(!todasPorDia[dia]) todasPorDia[dia]=[];
+      todasPorDia[dia].push({tipo:"existente",row:r});
+    }
+    for(const s of nuevosMes){
+      const dia=s.fechaSort.getDate();
+      if(!todasPorDia[dia]) todasPorDia[dia]=[];
+      todasPorDia[dia].push({tipo:"nuevo",seg:s});
+    }
+
+    const dias=Object.keys(todasPorDia).map(Number).sort((a,b)=>a-b);
+    let primerDia=true;
+    for(const dia of dias){
+      // Fila separadora entre días (excepto antes del primero)
+      if(!primerDia) resultado.push(["__SEPARADOR__","","","","","",""]);
+      primerDia=false;
+
+      // Filas de alerta al inicio del día si aplica
+      const fechaEjemplo=todasPorDia[dia][0].tipo==="nuevo"
+        ? todasPorDia[dia][0].seg.fecha
+        : todasPorDia[dia][0].row[0];
+      const alerta=getColorAlerta(fechaEjemplo);
+      if(alerta){
+        const idxDia=dias.indexOf(dia);
+        const diaAnterior=idxDia>0?dias[idxDia-1]:null;
+        const fechaAnterior=diaAnterior?(todasPorDia[diaAnterior][0].tipo==="nuevo"?todasPorDia[diaAnterior][0].seg.fecha:todasPorDia[diaAnterior][0].row[0]):null;
+        const alertaAnterior=fechaAnterior?getColorAlerta(fechaAnterior):null;
+        if(!alertaAnterior||alertaAnterior.texto!==alerta.texto)
+          resultado.push([`__ALERTA__${alerta.color}__${alerta.texto}__`,"","","","","",""]);
+      }
+      // Alertas puntuales (sin colorear vuelos)
+      const alertaPuntual=getAlertaPuntual(fechaEjemplo);
+      if(alertaPuntual) resultado.push([`__ALERTA__${alertaPuntual.color}__${alertaPuntual.texto}__`,"","","","","",""]);
+
+      for(const item of todasPorDia[dia]){
+        if(item.tipo==="existente") resultado.push(item.row);
+        else resultado.push([item.seg.fecha,item.seg.tramo,item.seg.pasajero,item.seg.vuelo,item.seg.bookingRef,item.seg.notas,"FALSE"]);
+      }
+    }
+  }
+  return resultado;
+}
+
+async function inicializarHoja(sheetId,sheetNumId){
+  const reqs=[
+    {updateCells:{
+      range:{sheetId:sheetNumId,startRowIndex:0,endRowIndex:1,startColumnIndex:0,endColumnIndex:7},
+      rows:[{values:["Fecha","Tramo","Pasajero(s)","N° Vuelo","Airline Booking Ref","Notas","✓ Check-in"].map(h=>({
+        userEnteredValue:{stringValue:h},
+        userEnteredFormat:{backgroundColor:COLOR_HEADER,textFormat:{bold:true,foregroundColor:{red:1,green:1,blue:1},fontSize:10},horizontalAlignment:"CENTER",verticalAlignment:"MIDDLE"}
+      }))}],
+      fields:"userEnteredValue,userEnteredFormat"
+    }},
+    {updateSheetProperties:{properties:{sheetId:sheetNumId,gridProperties:{frozenRowCount:1}},fields:"gridProperties.frozenRowCount"}},
+    ...[90,110,220,110,140,200,80].map((px,i)=>({updateDimensionProperties:{range:{sheetId:sheetNumId,dimension:"COLUMNS",startIndex:i,endIndex:i+1},properties:{pixelSize:px},fields:"pixelSize"}}))
+  ];
+  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`,{
+    method:"POST",headers:{Authorization:"Bearer "+accessToken,"Content-Type":"application/json"},
+    body:JSON.stringify({requests:reqs})
+  });
+}
+
+async function escribirHojaCompleta(sheetId,sheetNumId,nombreHoja,filas){
+  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(nombreHoja+"!A:G")}:clear`,{method:"POST",headers:{Authorization:"Bearer "+accessToken}});
+  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(nombreHoja+"!A1")}?valueInputOption=USER_ENTERED`,{
+    method:"PUT",headers:{Authorization:"Bearer "+accessToken,"Content-Type":"application/json"},
+    body:JSON.stringify({values:filas.map(r=>r.map(c=>c===false?"FALSE":c===true?"TRUE":(c||"")))})
+  });
+
+  const reqs=[];
+  let filasPar=false;
+
+  filas.forEach((row,idx)=>{
+    const val0=(row[0]||"").trim();
+    const esHeader=val0==="Fecha";
+    const esMes=Object.values(MESES_ES).includes(val0.toUpperCase())&&!val0.match(/\d/);
+    const esSeparador=val0==="__SEPARADOR__"||val0.toLowerCase()==="separador";
+    const esAlerta=val0.startsWith("__ALERTA__");
+
+    if(esHeader){
+      reqs.push({updateCells:{range:{sheetId:sheetNumId,startRowIndex:idx,endRowIndex:idx+1,startColumnIndex:0,endColumnIndex:7},rows:[{values:Array(7).fill({userEnteredFormat:{backgroundColor:COLOR_HEADER,textFormat:{bold:true,foregroundColor:{red:1,green:1,blue:1}},horizontalAlignment:"CENTER",verticalAlignment:"MIDDLE"}})}],fields:"userEnteredFormat"}});
+    } else if(esMes){
+      reqs.push({updateCells:{range:{sheetId:sheetNumId,startRowIndex:idx,endRowIndex:idx+1,startColumnIndex:0,endColumnIndex:7},rows:[{values:Array(7).fill({userEnteredFormat:{backgroundColor:COLOR_MES,textFormat:{bold:true,foregroundColor:{red:1,green:1,blue:1},fontSize:11},verticalAlignment:"MIDDLE"}})}],fields:"userEnteredFormat"}});
+      reqs.push({mergeCells:{range:{sheetId:sheetNumId,startRowIndex:idx,endRowIndex:idx+1,startColumnIndex:0,endColumnIndex:7},mergeType:"MERGE_ALL"}});
+      reqs.push({updateDimensionProperties:{range:{sheetId:sheetNumId,dimension:"ROWS",startIndex:idx,endIndex:idx+1},properties:{pixelSize:24},fields:"pixelSize"}});
+      filasPar=false;
+    } else if(esSeparador){
+      reqs.push({updateCells:{range:{sheetId:sheetNumId,startRowIndex:idx,endRowIndex:idx+1,startColumnIndex:0,endColumnIndex:7},rows:[{values:Array(7).fill({userEnteredValue:{stringValue:""},userEnteredFormat:{backgroundColor:{red:0.9,green:0.9,blue:0.9}}})}],fields:"userEnteredValue,userEnteredFormat"}});
+      reqs.push({updateDimensionProperties:{range:{sheetId:sheetNumId,dimension:"ROWS",startIndex:idx,endIndex:idx+1},properties:{pixelSize:21},fields:"pixelSize"}});
+      filasPar=false;
+    } else if(esAlerta){
+      const parts=val0.split("__").filter(Boolean);
+      const colorKey=parts[1]||"naranja";
+      const textoAlerta=parts[2]||"ALERTA";
+      const c=COLORES_ALERTA[colorKey]||COLORES_ALERTA.naranja;
+      const colorAlerta={red:c.r,green:c.g,blue:c.b};
+      reqs.push({updateCells:{range:{sheetId:sheetNumId,startRowIndex:idx,endRowIndex:idx+1,startColumnIndex:0,endColumnIndex:7},rows:[{values:Array(7).fill({userEnteredFormat:{backgroundColor:colorAlerta,textFormat:{bold:true,foregroundColor:{red:1,green:1,blue:1}},verticalAlignment:"MIDDLE",horizontalAlignment:"CENTER"}})}],fields:"userEnteredFormat"}});
+      reqs.push({mergeCells:{range:{sheetId:sheetNumId,startRowIndex:idx,endRowIndex:idx+1,startColumnIndex:0,endColumnIndex:7},mergeType:"MERGE_ALL"}});
+      reqs.push({updateDimensionProperties:{range:{sheetId:sheetNumId,dimension:"ROWS",startIndex:idx,endIndex:idx+1},properties:{pixelSize:22},fields:"pixelSize"}});
+    } else {
+      // Verificar si tiene alerta
+      const alertaFila=getColorAlerta(val0);
+      let color=alertaFila?{red:COLORES_ALERTA[alertaFila.color].r,green:COLORES_ALERTA[alertaFila.color].g,blue:COLORES_ALERTA[alertaFila.color].b}:(filasPar?COLOR_PAR:COLOR_BLANCO);
+      filasPar=!filasPar;
+
+      reqs.push({updateCells:{range:{sheetId:sheetNumId,startRowIndex:idx,endRowIndex:idx+1,startColumnIndex:0,endColumnIndex:7},rows:[{values:Array(7).fill({userEnteredFormat:{backgroundColor:color,verticalAlignment:"MIDDLE"}})}],fields:"userEnteredFormat"}});
+      reqs.push({setDataValidation:{range:{sheetId:sheetNumId,startRowIndex:idx,endRowIndex:idx+1,startColumnIndex:1,endColumnIndex:2},rule:{condition:{type:"ONE_OF_LIST",values:[{userEnteredValue:""},{userEnteredValue:"Ida"},{userEnteredValue:"Regreso"},{userEnteredValue:"Tramo interno"}]},showCustomUi:true,strict:false}}});
+      reqs.push({setDataValidation:{range:{sheetId:sheetNumId,startRowIndex:idx,endRowIndex:idx+1,startColumnIndex:6,endColumnIndex:7},rule:{condition:{type:"BOOLEAN"},showCustomUi:true}}});
+    }
+  });
+
+  // Altura mínima 21px para todas las filas de datos
+  reqs.push({"updateDimensionProperties":{
+    "range":{"sheetId":sheetNumId,"dimension":"ROWS","startIndex":1,"endIndex":filas.length},
+    "properties":{"pixelSize":21},"fields":"pixelSize"
+  }});
+  // Auto-resize filas con contenido largo
+  reqs.push({"autoResizeDimensions":{
+    "dimensions":{"sheetId":sheetNumId,"dimension":"ROWS","startIndex":1,"endIndex":filas.length}
+  }});
+
+  for(let i=0;i<reqs.length;i+=400){
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}:batchUpdate`,{
+      method:"POST",headers:{Authorization:"Bearer "+accessToken,"Content-Type":"application/json"},
+      body:JSON.stringify({requests:reqs.slice(i,i+400)})
+    });
+  }
+}
+</script>
+
+<script src="https://apis.google.com/js/api.js" onload="gapiStart()"></script>
+<script src="https://accounts.google.com/gsi/client" onload="gisStart()"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
+</body>
+</html>
